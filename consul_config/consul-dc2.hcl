@@ -22,5 +22,6 @@ connect {
 ui = true
 enable_central_service_config = true
 
-advertise_addr_wan = "10.6.0.2"
-retry_join_wan = ["10.5.0.2:8302"]
+advertise_addr = "10.6.0.2"
+advertise_addr_wan = "192.169.7.4"
+retry_join_wan = ["192.169.7.2"]

@@ -11,6 +11,8 @@ services:
     networks:
       dc1:
         ipv4_address: 10.5.0.2
+      wan:
+        ipv4_address: 192.169.7.2
 
   # Define web service and envoy sidecar proxy
   web:
@@ -50,12 +52,14 @@ services:
       "-mesh-gateway",
       "-register",
       "-address", "10.5.0.4:443",
-      "-wan-address", "10.5.0.4:443",
+      "-wan-address", "192.169.7.3:443",
       "--",
       "-l", "debug"]
     networks:
       dc1:
         ipv4_address: 10.5.0.4
+      wan:
+        ipv4_address: 192.169.7.3
 
  
 
@@ -67,8 +71,10 @@ services:
     ports:
       - 9500:8500
     networks:
-      dc1:
+      dc2:
         ipv4_address: 10.6.0.2
+      wan:
+        ipv4_address: 192.169.7.4
 
   # Define api service and envoy sidecar proxy for version 1 of the service
   api:
@@ -78,7 +84,7 @@ services:
       NAME: web
       MESSAGE: "API V1"
     networks:
-      dc1:
+      dc2:
         ipv4_address: 10.6.0.3
   api_envoy:
     image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
@@ -102,16 +108,28 @@ services:
       "-mesh-gateway",
       "-register",
       "-address", "10.6.0.4:443",
-      "-wan-address", "10.6.0.4:443",
+      "-wan-address", "192.169.7.5:443",
       "--",
       "-l", "debug"]
     networks:
-      dc1:
+      dc2:
         ipv4_address: 10.6.0.4
+      wan:
+        ipv4_address: 192.169.7.5
 
 networks:
   dc1:
     driver: bridge
     ipam:
      config:
-       - subnet: 10.0.0.0/8
+       - subnet: 10.5.0.0/16
+  dc2:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.6.0.0/16
+  wan:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 192.169.7.0/24

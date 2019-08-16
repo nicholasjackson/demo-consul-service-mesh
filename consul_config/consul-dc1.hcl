@@ -20,5 +20,6 @@ connect {
   enabled = true
 }
 
-advertise_addr_wan = "10.5.0.2"
+advertise_addr = "10.5.0.2"
+advertise_addr_wan = "192.169.7.2"
 enable_central_service_config = true
