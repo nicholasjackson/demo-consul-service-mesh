@@ -3,6 +3,9 @@ Various demos for Consul service mesh
 
 ## Gateways
 This demo highlights Consul Service Mesh gateways which allow cross cluster communication between services. It consists of the following features:
+* Private Network DC1
+* Private Network DC2
+* WAN Network (Consul Server, Consul Gateway)
 * Consul Datacenter DC1 - Primary
 * Consul Datacenter DC2 - Secondary, joined to DC1 with WAN federation
 * Consul Gateway DC1
@@ -65,7 +68,7 @@ Hello World
 The web application makes an upstream call to the API which resides in a separate datacenter. The full flow through the service mesh is as follows:
 * Web app makes upstream app via Envoy running at localhost:9091
 * Envoy forwards request to Consul Gateway in DC1
-* Mesh Gateway in DC1 forwards request to Consul Gateway in DC2
+* Mesh Gateway in DC1 forwards request to Consul Gateway in DC2 Over WAN
 * Mesh Gateway in DC2 forwards request to upstream Envoy for API service
 * Envoy sidecar for API service forwards request to API service which is only listening on localhost
 * API service receives request and sends response back through same chain
