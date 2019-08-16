@@ -2,7 +2,9 @@
 Various demos for Consul service mesh
 
 ## Gateways
-This demo highlights Consul Service Mesh gateways which allow cross cluster communication between services. It consists of the following features:
+This demo highlights Consul Service Mesh gateways which allow cross cluster communication between services, for simplicity the demo connects applications direct to the Consul Server. The recommended architecture is to use a local Consul Client on each node.
+
+It consists of the following features:
 * Private Network DC1
 * Private Network DC2
 * WAN Network (Consul Server, Consul Gateway)
@@ -12,6 +14,33 @@ This demo highlights Consul Service Mesh gateways which allow cross cluster comm
 * Consul Gateway DC2
 * Web frontend (DC1) communicates with API in DC2 via Consul Gateways
 * API service (DC2)
+
+To enable connectivity from a service residing in one datacenter to another a `Service-Resolver` can be used which hints at the route for service resolution.
+
+```
+kind = "service-resolver"
+name = "api"
+
+redirect {
+  service    = "api"
+  datacenter = "dc2"
+}
+```
+
+In addition to this services which would like to leverage mesh gateways need to have this option explicitly declared in their `Service-Defaults`:
+
+```
+Kind = "service-defaults"
+Name = "api"
+
+Protocol = "http"
+
+MeshGateway = {
+  mode = "local"
+}
+```
+
+All configuration for service definitions and central config can be found in the `service_config` and `central_config` folders. Config for the Consul Server can be found in the `consul_config` folder.
 
 ### Running
 ```
@@ -65,7 +94,11 @@ Hello World
   API V1% 
 ```
 
-The web application makes an upstream call to the API which resides in a separate datacenter. The full flow through the service mesh is as follows:
+The web application makes an upstream call to the API which resides in a separate datacenter, networks DC1 and DC2 are not connected. Communication between different datacenters must use the WAN.
+
+![](images/gateways.png)
+
+The full flow through the service mesh is as follows:
 * Web app makes upstream app via Envoy running at localhost:9091
 * Envoy forwards request to Consul Gateway in DC1
 * Mesh Gateway in DC1 forwards request to Consul Gateway in DC2 Over WAN
