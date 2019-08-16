@@ -1,0 +1,100 @@
+version: "3.3"
+services:
+
+  startup:
+    image: ubuntu:latest
+    volumes:
+      - "./consul_config:/consul_config"
+      - "./templates:/templates"
+    entrypoint: "/templates/build_config.sh"
+
+
+  consul-dc1:
+    depends_on: 
+      - startup
+    image: consul:1.6.0-rc1
+    command: ["consul","agent","-config-file=/config/consul-dc1.hcl"]
+    volumes:
+      - "./consul_config:/config"
+    ports:
+      - 8500:8500
+      - 8302:8302/tcp
+      - 8302:8302/udp
+    networks:
+      dc1:
+        ipv4_address: 10.5.0.2
+
+  # Define web service and envoy sidecar proxy
+  web:
+    image: nicholasjackson/fake-service:v0.3.2
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      UPSTREAM_ADDR: localhost:9991
+      UPSTREAM_CALL: "true"
+      MESSAGE: "Hello World"
+      HTTP_CLIENT_KEEP_ALIVES: "false"
+    networks:
+      dc1:
+        ipv4_address: 10.5.0.3
+    ports:
+      - 9090:9090
+  web_envoy:
+    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+      SERVICE_CONFIG: /config/web.json
+    volumes:
+      - "./service_config:/config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "web"]
+    network_mode: "service:web"
+
+ 
+
+  consul-dc2:
+    depends_on: 
+      - startup
+    image: consul:1.6.0-rc1
+    command: ["consul","agent","-config-file=/config/consul-dc2.hcl"]
+    volumes:
+      - "./consul_config:/config"
+    ports:
+      - 9500:8500
+      - 9302:9302/tcp
+      - 9302:9302/udp
+    networks:
+      dc1:
+        ipv4_address: 10.6.0.2
+
+  # Define api service and envoy sidecar proxy for version 1 of the service
+  api:
+    image: nicholasjackson/fake-service:v0.3.2
+    environment:
+      LISTEN_ADDR: localhost:9090
+      MESSAGE: "API V1"
+    networks:
+      dc1:
+        ipv4_address: 10.6.0.3
+  api_envoy:
+    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.6.0.2:8500
+      CONSUL_GRPC_ADDR: 10.6.0.2:8502
+      SERVICE_CONFIG: /config/api.json
+    volumes:
+      - "./service_config:/config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "api"]
+    network_mode: "service:api"
+
+networks:
+  dc1:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.0.0.0/8
+
+         #  dc2:
+         #    driver: bridge
+         #    ipam:
+         #     config:
+         #       - subnet: 10.6.0.0/16
