@@ -26,7 +26,7 @@ config {
               }
           ]
       },
-      "name": "cluster_tracing_honeycomb_opentracing_proxy_9411",
+      "name": "jaeger_9411",
       "type": "STRICT_DNS"
     }
   EOL
