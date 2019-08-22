@@ -16,16 +16,19 @@ services:
 
   # Define web service and envoy sidecar proxy
   web:
-    image: nicholasjackson/fake-service:v0.3.2
+    image: nicholasjackson/fake-service:v0.3.3
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
-      UPSTREAM_URIS: http://localhost:9091
+      UPSTREAM_URIS: grpc://localhost:9091
       MESSAGE: "Hello World"
       NAME: web
+      SERVER_TYPE: "http"
       HTTP_CLIENT_KEEP_ALIVES: "false"
+      TRACING_ZIPKIN: "http://jaeger:9411"
     networks:
       dc1:
         ipv4_address: 10.5.0.3
+      tracing: {}
     ports:
       - 9090:9090
   web_envoy:
@@ -34,7 +37,7 @@ services:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
       SERVICE_CONFIG: /config/web.json
-      CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/api-resolver.hcl"
+      CENTRAL_CONFIG: "/central_config/global-defaults.hcl;/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/api-resolver.hcl"
     volumes:
       - "./service_config:/config"
       - "./central_config:/central_config"
@@ -60,6 +63,7 @@ services:
         ipv4_address: 10.5.0.4
       wan:
         ipv4_address: 192.169.7.3
+      tracing: {}
 
  
 
@@ -78,14 +82,17 @@ services:
 
   # Define api service and envoy sidecar proxy for version 1 of the service
   api:
-    image: nicholasjackson/fake-service:v0.3.2
+    image: nicholasjackson/fake-service:v0.3.3
     environment:
       LISTEN_ADDR: localhost:9090
-      NAME: web
+      NAME: api
       MESSAGE: "API V1"
+      SERVER_TYPE: "grpc"
+      TRACING_ZIPKIN: "http://jaeger:9411"
     networks:
       dc2:
         ipv4_address: 10.6.0.3
+      tracing: {}
   api_envoy:
     image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
     environment:
@@ -116,6 +123,22 @@ services:
         ipv4_address: 10.6.0.4
       wan:
         ipv4_address: 192.169.7.5
+      tracing: {}
+  
+  jaeger:
+    image: jaegertracing/all-in-one:1.13
+    environment:
+      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "9411:9411"
+    networks:
+      tracing: {}
 
 networks:
   dc1:
@@ -133,3 +156,5 @@ networks:
     ipam:
      config:
        - subnet: 192.169.7.0/24
+  tracing:
+    driver: bridge
