@@ -278,18 +278,3 @@ Removing consul-demo-traffic-splitting_web_1          ... done
 Removing consul-demo-traffic-splitting_api_v1_1       ... done
 Removing network consul-demo-traffic-splitting_vpcbr
 ```
-## Summary
-
-In this blog, we walked you through the steps required to perform Canary deployments using traffic splitting and resolution. For more in-depth information on Canary deployments, Danilo Sato has written an [excellent article](https://martinfowler.com/bliki/CanaryRelease.html) on Martin Fowler's website. 
-
-The advanced L7 traffic management in 1.6.0 is not limited to splitting. It also includes HTTP based routing and new settings for service resolution. In combination, these features enable sophisticated traffic routing and service failover. All the new L7 traffic management settings can be found in the [documentation](https://www.consul.io/docs/connect/l7-traffic-management.html). If you’d like to go farther, combine it with our guide on and [L7 Observability](https://learn.hashicorp.com/consul/developer-mesh/l7-observability-k8s) to implement some of the monitoring needed for new service deployments. 
-
-Please keep in mind that [Consul 1.6 RC](https://www.consul.io/downloads.html) isn’t suited for production deployments. We’d appreciate any feedback or bug reports you have in our [GitHub issues](https://github.com/hashicorp/consul/issues), and you’re welcome to ask questions in our new [community forum](https://discuss.hashicorp.com/c/consul).
-
-# Consul Service Mesh - Example using Service Splitting
-
-## Running the application
-
-## Configuring service splitting 100% api version 1
-
-## Configure service splitting 50% api version 1, 50% api version 2
