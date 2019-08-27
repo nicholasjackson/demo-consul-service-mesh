@@ -1,0 +1,137 @@
+version: "3.3"
+services:
+
+  consul-dc1:
+    image: consul:1.6.0-rc1
+    command: ["consul","agent","-config-file=/config/consul-dc1.hcl"]
+    volumes:
+      - "../consul_config:/config"
+    ports:
+      - 8500:8500
+    networks:
+      dc1:
+        ipv4_address: 10.5.0.2
+      wan:
+        ipv4_address: 192.169.7.2
+
+  # Define web service and envoy sidecar proxy
+  web:
+    image: nicholasjackson/fake-service:v0.3.3
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      UPSTREAM_URIS: grpc://localhost:9091
+      MESSAGE: "Hello World"
+      NAME: web
+      SERVER_TYPE: "http"
+      HTTP_CLIENT_KEEP_ALIVES: "false"
+    networks:
+      dc1:
+        ipv4_address: 10.5.0.3
+    ports:
+      - 9090:9090
+  web_envoy:
+    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+      SERVICE_CONFIG: /config/web.json
+      CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/api-resolver.hcl"
+    volumes:
+      - "./service_config:/config"
+      - "./central_config:/central_config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "web"]
+    network_mode: "service:web"
+
+  gateway-dc1:
+    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+    command: [
+      "consul",
+      "connect", "envoy",
+      "-mesh-gateway",
+      "-register",
+      "-address", "10.5.0.4:443",
+      "-wan-address", "192.169.7.3:443",
+      "--",
+      "-l", "debug"]
+    networks:
+      dc1:
+        ipv4_address: 10.5.0.4
+      wan:
+        ipv4_address: 192.169.7.3
+
+ 
+  consul-dc2:
+    image: consul:1.6.0-rc1
+    command: ["consul","agent","-config-file=/config/consul-dc2.hcl"]
+    volumes:
+      - "../consul_config:/config"
+    ports:
+      - 9500:8500
+    networks:
+      dc2:
+        ipv4_address: 10.6.0.2
+      wan:
+        ipv4_address: 192.169.7.4
+
+  # Define api service and envoy sidecar proxy for version 1 of the service
+  api:
+    image: nicholasjackson/fake-service:v0.3.3
+    environment:
+      LISTEN_ADDR: localhost:9090
+      NAME: api
+      MESSAGE: "API V1"
+      SERVER_TYPE: "grpc"
+      TRACING_ZIPKIN: "http://jaeger:9411"
+    networks:
+      dc2:
+        ipv4_address: 10.6.0.3
+  api_envoy:
+    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.6.0.2:8500
+      CONSUL_GRPC_ADDR: 10.6.0.2:8502
+      SERVICE_CONFIG: /config/api.json
+    volumes:
+      - "./service_config:/config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "api"]
+    network_mode: "service:api"
+  
+  gateway-dc2:
+    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.6.0.2:8500
+      CONSUL_GRPC_ADDR: 10.6.0.2:8502
+    command: [
+      "consul",
+      "connect", "envoy",
+      "-mesh-gateway",
+      "-register",
+      "-address", "10.6.0.4:443",
+      "-wan-address", "192.169.7.5:443",
+      "--",
+      "-l", "debug"]
+    networks:
+      dc2:
+        ipv4_address: 10.6.0.4
+      wan:
+        ipv4_address: 192.169.7.5
+
+networks:
+  dc1:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+  dc2:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.6.0.0/16
+  wan:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 192.169.7.0/24
