@@ -1,6 +1,8 @@
 Kind = "service-defaults"
-Name = "api"
-Protocol = "grpc"
+Name = "web"
+
+Protocol = "http"
+
 MeshGateway = {
   mode = "local"
 }
