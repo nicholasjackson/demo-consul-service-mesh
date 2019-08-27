@@ -1,5 +1,5 @@
-kind           = "service-resolver"
-name           = "api"
+kind     = "service-resolver"
+name     = "api"
 
 failover = {
   "*" = {
