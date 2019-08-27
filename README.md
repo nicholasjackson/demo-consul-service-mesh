@@ -23,4 +23,4 @@ This demonstration shows how to failover upstream services to a different datace
 ## [Consul Gateways](gateways/README.md)
 This demonstration shows how to route traffic to a second Consul Datacenter using Consul Gateways. This feature could be used to route traffic between Virtual Machines and Kubernetes.
 
-![](failover/images/gateways.png)
+![](gateways/images/gateways.png)
