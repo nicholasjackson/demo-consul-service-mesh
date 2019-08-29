@@ -2,7 +2,7 @@ version: "3.3"
 services:
 
   consul-dc1:
-    image: consul:1.6.0-rc1
+    image: consul:1.6.0
     command: ["consul","agent","-config-file=/config/consul-dc1.hcl"]
     volumes:
       - "../consul_config:/config"
@@ -16,7 +16,7 @@ services:
 
   # Define web service and envoy sidecar proxy
   web:
-    image: nicholasjackson/fake-service:v0.3.3
+    image: nicholasjackson/fake-service:v0.3.4
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
       UPSTREAM_URIS: http://localhost:9091
@@ -30,7 +30,7 @@ services:
     ports:
       - 9090:9090
   web_envoy:
-    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
@@ -44,7 +44,7 @@ services:
 
   # Define api service and envoy sidecar proxy for version 1 of the service
   api_dc1:
-    image: nicholasjackson/fake-service:v0.3.3
+    image: nicholasjackson/fake-service:v0.3.4
     environment:
       LISTEN_ADDR: localhost:9090
       NAME: api
@@ -54,7 +54,7 @@ services:
       dc1:
         ipv4_address: 10.5.0.5
   api_envoy_dc1:
-    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
@@ -65,7 +65,7 @@ services:
     network_mode: "service:api_dc1"
 
   gateway-dc1:
-    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
@@ -86,7 +86,7 @@ services:
 
  
   consul-dc2:
-    image: consul:1.6.0-rc1
+    image: consul:1.6.0
     command: ["consul","agent","-config-file=/config/consul-dc2.hcl"]
     volumes:
       - "../consul_config:/config"
@@ -100,7 +100,7 @@ services:
 
   # Define api service and envoy sidecar proxy for dc2 of the service
   api_dc2:
-    image: nicholasjackson/fake-service:v0.3.3
+    image: nicholasjackson/fake-service:v0.3.4
     environment:
       LISTEN_ADDR: localhost:9090
       NAME: api
@@ -110,7 +110,7 @@ services:
       dc2:
         ipv4_address: 10.6.0.3
   api_envoy_dc2:
-    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.6.0.2:8500
       CONSUL_GRPC_ADDR: 10.6.0.2:8502
@@ -121,7 +121,7 @@ services:
     network_mode: "service:api_dc2"
   
   gateway-dc2:
-    image: nicholasjackson/consul-envoy:v1.6.0-rc1-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.6.0.2:8500
       CONSUL_GRPC_ADDR: 10.6.0.2:8502
