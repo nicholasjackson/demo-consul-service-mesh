@@ -14,7 +14,7 @@ services:
 
   # Define web service and envoy sidecar proxy
   web:
-    image: nicholasjackson/fake-service:v0.3.3
+    image: nicholasjackson/fake-service:v0.3.4
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
       UPSTREAM_URIS: grpc://localhost:9091
@@ -22,6 +22,10 @@ services:
       MESSAGE: "Hello World"
       HTTP_CLIENT_KEEP_ALIVES: "false"
       NAME: web
+      TIMING_50_PERCENTILE: 30ms
+      TIMING_90_PERCENTILE: 60ms
+      TIMING_99_PERCENTILE: 90ms
+      TIMING_VARIANCE: 10
       TRACING_ZIPKIN: "http://jaeger:9411"
     networks:
       vpcbr:
@@ -34,7 +38,7 @@ services:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
       SERVICE_CONFIG: /config/web_v1.json
-      CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/global-defaults.hcl"
+      CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/cache-defaults.hcl;/central_config/payments-defaults.hcl;central_config/currency-defaults.hcl/central_config/global-defaults.hcl"
     volumes:
       - "./service_config:/config"
       - "./central_config:/central_config"
@@ -42,18 +46,23 @@ services:
     network_mode: "service:web"
 
   # Define api service and envoy sidecar proxy for version 1 of the service
-  api_v1:
-    image: nicholasjackson/fake-service:v0.3.3
+  api:
+    image: nicholasjackson/fake-service:v0.3.4
     environment:
       LISTEN_ADDR: localhost:9090
       NAME: api
       MESSAGE: "API V1"
       SERVER_TYPE: "grpc"
       TRACING_ZIPKIN: "http://jaeger:9411"
+      UPSTREAM_URIS: "http://localhost:9091, http://localhost:9092"
+      TIMING_50_PERCENTILE: 10ms
+      TIMING_90_PERCENTILE: 20ms
+      TIMING_99_PERCENTILE: 25ms
+      TIMING_VARIANCE: 10
     networks:
       vpcbr:
         ipv4_address: 10.5.0.4
-  api_proxy_v1:
+  api_proxy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
@@ -62,7 +71,78 @@ services:
     volumes:
       - "./service_config:/config"
     command: ["consul", "connect", "envoy","-sidecar-for", "api-v1"]
-    network_mode: "service:api_v1"
+    network_mode: "service:api"
+  
+  cache:
+    image: nicholasjackson/fake-service:v0.3.4
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      MESSAGE: "Cache response"
+      NAME: "cache"
+      SERVER_TYPE: "http"
+      TIMING_50_PERCENTILE: 1ms
+      TIMING_90_PERCENTILE: 2ms
+      TIMING_99_PERCENTILE: 3ms
+      TIMING_VARIANCE: 10
+      TRACING_ZIPKIN: "http://jaeger:9411"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.5
+  cache_proxy:
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+      SERVICE_CONFIG: /config/cache_v1.json
+    volumes:
+      - "./service_config:/config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "cache-v1"]
+    network_mode: "service:cache"
+  
+  payments:
+    image: nicholasjackson/fake-service:v0.3.4
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      UPSTREAM_URIS: "http://localhost:9091"
+      MESSAGE: "Payments response"
+      NAME: "payments"
+      SERVER_TYPE: "http"
+      TRACING_ZIPKIN: "http://jaeger:9411"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.6
+  payments_proxy:
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+      SERVICE_CONFIG: /config/payments_v1.json
+    volumes:
+      - "./service_config:/config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "payments-v1"]
+    network_mode: "service:payments"
+  
+  currency:
+    image: nicholasjackson/fake-service:v0.3.4
+    environment:
+      LISTEN_ADDR: 0.0.0.0:9090
+      MESSAGE: "Currency response"
+      NAME: "currency"
+      SERVER_TYPE: "http"
+      TRACING_ZIPKIN: "http://jaeger:9411"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.7
+  currency_proxy:
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+      SERVICE_CONFIG: /config/currency_v1.json
+    volumes:
+      - "./service_config:/config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "currency-v1"]
+    network_mode: "service:currency"
 
 # Tracing and Metrics  
   grafana:
@@ -79,7 +159,7 @@ services:
       - "./grafana/dashboards:/var/lib/grafana/dashboards"
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.6
+        ipv4_address: 10.5.0.8
 
   prometheus-server:
     image: prom/prometheus
@@ -89,7 +169,7 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.7
+        ipv4_address: 10.5.0.9
 
   jaeger:
     image: jaegertracing/all-in-one:1.13
@@ -105,7 +185,7 @@ services:
       - "9411:9411"
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.5
+        ipv4_address: 10.5.0.10
   
 networks:
   vpcbr:
