@@ -2,7 +2,7 @@ version: "3.3"
 services:
 
   consul:
-    image: consul:1.6.0-rc1
+    image: consul:1.6.0
     command: ["consul","agent","-config-file=/config/consul.hcl","-config-dir=/config"]
     volumes:
       - "./consul_config:/config"
@@ -14,7 +14,7 @@ services:
 
   # Define web service and envoy sidecar proxy
   web:
-    image: nicholasjackson/upstream-echo:v0.1.8
+    image: nicholasjackson/fake-service:v0.3.3
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
       UPSTREAM_ADDR: localhost:9991
@@ -27,7 +27,7 @@ services:
     ports:
       - 9090:9090
   web_envoy:
-    image: nicholasjackson/consul-envoy:v1.6.0-beta3-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
@@ -39,7 +39,7 @@ services:
 
   # Define api service and envoy sidecar proxy for version 1 of the service
   api_v1:
-    image: nicholasjackson/upstream-echo:v0.1.8
+    image: nicholasjackson/fake-service:v0.3.3
     environment:
       LISTEN_ADDR: localhost:9090
       MESSAGE: "Service V1"
@@ -47,7 +47,7 @@ services:
       vpcbr:
         ipv4_address: 10.5.0.4
   api_proxy_v1:
-    image: nicholasjackson/consul-envoy:v1.6.0-beta3-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
@@ -56,7 +56,7 @@ services:
       - "./service_config:/config"
     command: ["consul", "connect", "envoy","-sidecar-for", "api-v1"]
     network_mode: "service:api_v1"
-  
+ 
 networks:
   vpcbr:
     driver: bridge

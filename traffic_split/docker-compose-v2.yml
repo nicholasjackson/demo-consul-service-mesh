@@ -3,7 +3,7 @@ services:
 
   # Define api service and envoy sidecar proxy for version 2 of the service
   api_v2:
-    image: nicholasjackson/upstream-echo:v0.1.8
+    image: nicholasjackson/fake-service:v0.3.3
     environment:
       LISTEN_ADDR: localhost:9090
       MESSAGE: "Service V2"
@@ -11,7 +11,7 @@ services:
       vpcbr:
         ipv4_address: 10.5.0.5
   api_proxy_v2:
-    image: nicholasjackson/consul-envoy:v1.6.0-beta3-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
