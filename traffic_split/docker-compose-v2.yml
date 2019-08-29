@@ -16,12 +16,14 @@ services:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
       SERVICE_CONFIG: /config/api_v2.json
+      CENTRAL_CONFIG: "/central_config/api_service_resolver.hcl;/central_config/api_service_splitter_100_0.hcl"
     volumes:
       - "./service_config:/config"
+      - "./central_config:/central_config"
     command: ["consul", "connect", "envoy","-sidecar-for", "api-v2"]
     network_mode: "service:api_v2"
 
 networks:
   vpcbr:
     external:
-      name: consul-demo-traffic-splitting_vpcbr
+      name: traffic_split_vpcbr
