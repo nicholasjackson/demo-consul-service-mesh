@@ -18,7 +18,7 @@ To apply configuration manually you can comment out the `CENTRAL_CONFIG` environ
     network_mode: "service:web"
 ```
 
-Config can then be manually applied using the following command:
+Config can then be manually applied using the following command once you have started the example with `docker-compose up`:
 ```
 $ consul config write config_file.hcl
 ```
