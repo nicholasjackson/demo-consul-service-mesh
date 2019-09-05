@@ -39,7 +39,7 @@ services:
     volumes:
       - "./service_config:/config"
       - "./central_config:/central_config"
-    command: ["consul", "connect", "envoy","-sidecar-for", "web"]
+    command: ["consul", "connect", "envoy","-sidecar-for", "web","--","-l","debug"]
     network_mode: "service:web"
 
   # Define api service and envoy sidecar proxy for version 1 of the service
@@ -69,7 +69,7 @@ services:
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
-    command: [
+    command: 
       "consul",
       "connect", "envoy",
       "-mesh-gateway",
