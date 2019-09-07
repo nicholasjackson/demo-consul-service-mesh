@@ -14,7 +14,7 @@ services:
 
   # Define web service and envoy sidecar proxy
   web:
-    image: nicholasjackson/fake-service:v0.3.5
+    image: nicholasjackson/fake-service:v0.4.1
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
       UPSTREAM_URIS: "http://localhost:9091"
@@ -34,7 +34,7 @@ services:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
       SERVICE_CONFIG: /config/web_v1.json
-      CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/api-v1-defaults.hcl;/central_config/api-v2-defaults.hcl;/central_config/api-router.hcl"
+      #CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/api-v1-defaults.hcl;/central_config/api-v2-defaults.hcl;/central_config/api-router.hcl"
     volumes:
       - "./service_config:/config"
       - "./central_config:/central_config"
@@ -42,48 +42,48 @@ services:
     network_mode: "service:web"
 
   # Define api service and envoy sidecar proxy for version 1 of the service
-  api_v1:
-    image: nicholasjackson/fake-service:v0.3.5
+  payments:
+    image: nicholasjackson/fake-service:v0.4.1
     environment:
       LISTEN_ADDR: localhost:9090
-      NAME: api
-      MESSAGE: "API V1"
+      NAME: payments
+      MESSAGE: "Payments"
       SERVER_TYPE: "http"
     networks:
       vpcbr:
         ipv4_address: 10.5.0.4
-  api_proxy_v1:
+  payments_proxy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
-      SERVICE_CONFIG: /config/api_v1.json
+      SERVICE_CONFIG: /config/payments.hcl
     volumes:
       - "./service_config:/config"
-    command: ["consul", "connect", "envoy","-sidecar-for", "api-v1"]
-    network_mode: "service:api_v1"
+    command: ["consul", "connect", "envoy","-sidecar-for", "payments-v1"]
+    network_mode: "service:payments"
   
   # Define api service and envoy sidecar proxy for version 2 of the service
-  api_v2:
-    image: nicholasjackson/fake-service:v0.3.5
+  currency:
+    image: nicholasjackson/fake-service:v0.4.1
     environment:
       LISTEN_ADDR: localhost:9090
-      NAME: api
-      MESSAGE: "API V2"
+      NAME: currency
+      MESSAGE: "Currency"
       SERVER_TYPE: "http"
     networks:
       vpcbr:
         ipv4_address: 10.5.0.5
-  api_proxy_v2:
+  currency_proxy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
-      SERVICE_CONFIG: /config/api_v2.json
+      SERVICE_CONFIG: /config/currency.hcl
     volumes:
       - "./service_config:/config"
-    command: ["consul", "connect", "envoy","-sidecar-for", "api-v2"]
-    network_mode: "service:api_v2"
+    command: ["consul", "connect", "envoy","-sidecar-for", "currency-v1"]
+    network_mode: "service:currency"
   
 networks:
   vpcbr:

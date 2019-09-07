@@ -1,5 +1,5 @@
 Kind = "service-defaults"
-Name = "api"
+Name = "currency"
 
 Protocol = "http"
 

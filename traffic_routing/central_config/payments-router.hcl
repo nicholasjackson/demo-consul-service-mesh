@@ -1,26 +1,26 @@
 kind = "service-router"
-name = "api"
+name = "payments"
 routes = [
   {
     match {
       http {
-        path_prefix = "/v1"
+        path_prefix = "/"
       }
     }
 
     destination {
-      service = "api-v1"
+      service = "payments"
     }
   },
   {
     match {
       http {
-        path_prefix = "/v2"
+        path_prefix = "/currency"
       }
     }
 
     destination {
-      service = "api-v2"
+      service = "currency"
     }
   },
 ]
