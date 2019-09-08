@@ -5,6 +5,7 @@ services:
   payments_v2:
     image: nicholasjackson/fake-service:v0.4.1
     environment:
+      UPSTREAM_URIS: http://localhost:9091
       LISTEN_ADDR: localhost:9090
       NAME: payments-v2
       MESSAGE: "PAYMENTS V2"
@@ -23,6 +24,28 @@ services:
       - "./central_config:/central_config"
     command: ["consul", "connect", "envoy","-sidecar-for", "payments-v2"]
     network_mode: "service:payments_v2"
+  
+  # Define currency service and envoy sidecar proxy for version 2 of the service
+  currency:
+    image: nicholasjackson/fake-service:v0.4.1
+    environment:
+      LISTEN_ADDR: localhost:9090
+      NAME: currency
+      MESSAGE: "2 USD for 1 GBP"
+      SERVER_TYPE: "http"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.5
+  currency_proxy:
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+      SERVICE_CONFIG: /config/currency_v1.hcl
+    volumes:
+      - "./service_config:/config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "currency-v1"]
+    network_mode: "service:currency"
 
 networks:
   vpcbr:

@@ -16,8 +16,19 @@ routes = [
 
     destination {
       service = "payments"
-      service_subset = "v2"
     }
 
+  },
+  {
+    match {
+      http {
+        path_prefix = "/"
+      }
+    }
+
+    destination {
+      service        = "payments"
+      service_subset = "v1"
+    }
   },
 ]
