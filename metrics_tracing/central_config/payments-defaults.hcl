@@ -1,5 +1,5 @@
 Kind = "service-defaults"
-Name = "cache"
+Name = "payments"
 
 Protocol = "http"
 
