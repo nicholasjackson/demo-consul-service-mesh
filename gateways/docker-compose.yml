@@ -123,6 +123,7 @@ services:
     command: ["consul", "connect", "envoy","-sidecar-for", "payments-v2"]
     network_mode: "service:payments_v2"
   
+  
   gateway-dc2:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
