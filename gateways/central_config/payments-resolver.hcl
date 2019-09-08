@@ -1,7 +1,7 @@
 kind           = "service-resolver"
-name           = "api"
+name           = "payments"
 
 redirect {
-  service    = "api"
+  service    = "payments"
   datacenter = "dc2"
 }
