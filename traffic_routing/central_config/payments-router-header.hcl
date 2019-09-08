@@ -1,6 +1,3 @@
-# NOTE: Routes are evaluated in order. The first route to match will stop
-# processing.
-
 kind = "service-router"
 name = "payments"
 routes = [
@@ -8,6 +5,12 @@ routes = [
     match {
       http {
         path_prefix = "/currency"
+        header = [
+          {
+            name  = "x-v2-beta"
+            exact = "true"
+          },
+        ]
       }
     }
 
@@ -25,5 +28,5 @@ routes = [
     destination {
       service = "payments"
     }
-  },
+  }
 ]

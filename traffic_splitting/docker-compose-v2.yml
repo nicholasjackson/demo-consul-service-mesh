@@ -1,0 +1,30 @@
+version: "3.3"
+services:
+
+  # Define api service and envoy sidecar proxy for version 2 of the service
+  payments_v2:
+    image: nicholasjackson/fake-service:v0.4.1
+    environment:
+      LISTEN_ADDR: localhost:9090
+      NAME: payments-v2
+      MESSAGE: "PAYMENTS V2"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.6
+  payments_proxy_v2:
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+      SERVICE_CONFIG: /config/payments_v2.hcl
+      #  CENTRAL_CONFIG: "/central_config/api_service_resolver.hcl;/central_config/api_service_splitter_100_0.hcl"
+    volumes:
+      - "./service_config:/config"
+      - "./central_config:/central_config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "payments-v2"]
+    network_mode: "service:payments_v2"
+
+networks:
+  vpcbr:
+    external:
+      name: traffic_splitting_vpcbr
