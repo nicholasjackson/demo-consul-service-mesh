@@ -3,11 +3,11 @@ name = "payments"
 
 splits = [
   {
-    weight = 100,
+    weight = 0,
     service_subset = "v1"
   },
   {
-    weight = 0,
+    weight = 100,
     service_subset = "v2"
   }
 ]
