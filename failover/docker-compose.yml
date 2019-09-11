@@ -19,7 +19,7 @@ services:
     image: nicholasjackson/fake-service:v0.4.1
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
-      UPSTREAM_URIS: "http://localhost:9091, http://localhost:9092"
+      UPSTREAM_URIS: "http://localhost:9091"
       MESSAGE: "Hello World"
       NAME: web
       SERVER_TYPE: "http"
