@@ -16,10 +16,10 @@ services:
 
   # Define web service and envoy sidecar proxy
   web:
-    image: nicholasjackson/fake-service:v0.3.4
+    image: nicholasjackson/fake-service:v0.4.1
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
-      UPSTREAM_URIS: http://localhost:9091
+      UPSTREAM_URIS: "http://localhost:9091"
       MESSAGE: "Hello World"
       NAME: web
       SERVER_TYPE: "http"
@@ -34,35 +34,36 @@ services:
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
-      SERVICE_CONFIG: /config/web.json
-      CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/api-resolver.hcl"
+      SERVICE_CONFIG: /config/web_v1.hcl
+      #CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/api-resolver.hcl"
     volumes:
       - "./service_config:/config"
       - "./central_config:/central_config"
-    command: ["consul", "connect", "envoy","-sidecar-for", "web"]
+    command: ["consul", "connect", "envoy","-sidecar-for", "web-v1"]
     network_mode: "service:web"
-
-  # Define api service and envoy sidecar proxy for version 1 of the service
-  api_dc1:
-    image: nicholasjackson/fake-service:v0.3.4
+  
+  
+  # Define currency service and envoy sidecar proxy for version 2 of the service
+  currency_dc1:
+    image: nicholasjackson/fake-service:v0.4.1
     environment:
       LISTEN_ADDR: localhost:9090
-      NAME: api
-      MESSAGE: "API DC1"
+      NAME: currency-dc1
+      MESSAGE: "2 USD for 1 GBP"
       SERVER_TYPE: "http"
     networks:
       dc1:
-        ipv4_address: 10.5.0.5
-  api_envoy_dc1:
+        ipv4_address: 10.5.0.4
+  currency_dc1_proxy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
-      SERVICE_CONFIG: /config/api-dc1.json
+      SERVICE_CONFIG: /config/currency_dc1.hcl
     volumes:
       - "./service_config:/config"
-    command: ["consul", "connect", "envoy","-sidecar-for", "api-dc1"]
-    network_mode: "service:api_dc1"
+    command: ["consul", "connect", "envoy","-sidecar-for", "currency-dc1"]
+    network_mode: "service:currency_dc1"
 
   gateway-dc1:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
@@ -74,13 +75,13 @@ services:
       "connect", "envoy",
       "-mesh-gateway",
       "-register",
-      "-address", "10.5.0.4:443",
+      "-address", "10.5.0.5:443",
       "-wan-address", "192.169.7.3:443",
       "--",
       "-l", "debug"]
     networks:
       dc1:
-        ipv4_address: 10.5.0.4
+        ipv4_address: 10.5.0.5
       wan:
         ipv4_address: 192.169.7.3
 
@@ -98,27 +99,51 @@ services:
       wan:
         ipv4_address: 192.169.7.4
 
-  # Define api service and envoy sidecar proxy for dc2 of the service
-  api_dc2:
-    image: nicholasjackson/fake-service:v0.3.4
+  # Define api service and envoy sidecar proxy for version 2 of the service
+  payments_v2:
+    image: nicholasjackson/fake-service:v0.4.1
     environment:
+      UPSTREAM_URIS: http://localhost:9091
       LISTEN_ADDR: localhost:9090
-      NAME: api
-      MESSAGE: "API DC2"
-      SERVER_TYPE: "http"
+      NAME: payments-dc2
+      MESSAGE: "PAYMENTS V2"
     networks:
       dc2:
         ipv4_address: 10.6.0.3
-  api_envoy_dc2:
+  payments_proxy_v2:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.6.0.2:8500
       CONSUL_GRPC_ADDR: 10.6.0.2:8502
-      SERVICE_CONFIG: /config/api-dc2.json
+      SERVICE_CONFIG: /config/payments_v2.hcl
+      #  CENTRAL_CONFIG: "/central_config/api_service_resolver.hcl;/central_config/api_service_splitter_100_0.hcl"
     volumes:
       - "./service_config:/config"
-    command: ["consul", "connect", "envoy","-sidecar-for", "api-dc2"]
-    network_mode: "service:api_dc2"
+      - "./central_config:/central_config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "payments-v2"]
+    network_mode: "service:payments_v2"
+  
+  # Define currency service and envoy sidecar proxy for version 2 of the service
+  currency_dc2:
+    image: nicholasjackson/fake-service:v0.4.1
+    environment:
+      LISTEN_ADDR: localhost:9090
+      NAME: currency-dc2
+      MESSAGE: "2 USD for 1 GBP"
+      SERVER_TYPE: "http"
+    networks:
+      dc2:
+        ipv4_address: 10.6.0.4
+  currency_dc2_proxy:
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.6.0.2:8500
+      CONSUL_GRPC_ADDR: 10.6.0.2:8502
+      SERVICE_CONFIG: /config/currency_dc2.hcl
+    volumes:
+      - "./service_config:/config"
+    command: ["consul", "connect", "envoy","-sidecar-for", "currency-dc2"]
+    network_mode: "service:currency_dc2"
   
   gateway-dc2:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
@@ -130,13 +155,13 @@ services:
       "connect", "envoy",
       "-mesh-gateway",
       "-register",
-      "-address", "10.6.0.4:443",
+      "-address", "10.6.0.5:443",
       "-wan-address", "192.169.7.5:443",
       "--",
       "-l", "debug"]
     networks:
       dc2:
-        ipv4_address: 10.6.0.4
+        ipv4_address: 10.6.0.5
       wan:
         ipv4_address: 192.169.7.5
 

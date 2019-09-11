@@ -39,7 +39,7 @@ config {
         "http": {
             "config": {
                 "collector_cluster": "jaeger_9411",
-                "collector_endpoint": "/api/v2/spans"
+                "collector_endpoint": "/api/v1/spans"
             },
             "name": "envoy.zipkin"
         }
