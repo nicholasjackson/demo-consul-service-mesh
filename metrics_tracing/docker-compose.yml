@@ -12,12 +12,26 @@ services:
       vpcbr:
         ipv4_address: 10.5.0.2
 
+  # Config init container
+  central_config:
+    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    environment:
+      CONSUL_HTTP_ADDR: 10.5.0.2:8500
+      CONSUL_GRPC_ADDR: 10.5.0.2:8502
+      CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/cache-defaults.hcl;/central_config/payments-defaults.hcl;central_config/currency-defaults.hcl;central_config/global-defaults.hcl"
+    volumes:
+      - "./central_config:/central_config"
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.20
+
   # Define web service and envoy sidecar proxy
   web:
     image: nicholasjackson/fake-service:v0.4.1
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
-      UPSTREAM_URIS: grpc://localhost:9091
+      UPSTREAM_URIS: http://localhost:9091
       UPSTREAM_CALL: "true"
       MESSAGE: "Hello World"
       HTTP_CLIENT_KEEP_ALIVES: "false"
@@ -32,16 +46,16 @@ services:
         ipv4_address: 10.5.0.3
     ports:
       - 9090:9090
+    depends_on: 
+    - central_config
   web_envoy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
       SERVICE_CONFIG: /config/web_v1.hcl
-      #CENTRAL_CONFIG: "/central_config/web-defaults.hcl;/central_config/api-defaults.hcl;/central_config/cache-defaults.hcl;/central_config/payments-defaults.hcl;central_config/currency-defaults.hcl;central_config/global-defaults.hcl"
     volumes:
       - "./service_config:/config"
-      - "./central_config:/central_config"
     command: ["consul", "connect", "envoy","-sidecar-for", "web-v1"]
     network_mode: "service:web"
 
@@ -52,7 +66,7 @@ services:
       LISTEN_ADDR: localhost:9090
       NAME: api
       MESSAGE: "API V1"
-      SERVER_TYPE: "grpc"
+      SERVER_TYPE: "http"
       TRACING_ZIPKIN: "http://jaeger:9411"
       UPSTREAM_URIS: "http://localhost:9091, http://localhost:9092"
       TIMING_50_PERCENTILE: 10ms
@@ -62,6 +76,8 @@ services:
     networks:
       vpcbr:
         ipv4_address: 10.5.0.4
+    depends_on: 
+    - central_config
   api_proxy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
@@ -70,7 +86,7 @@ services:
       SERVICE_CONFIG: /config/api_v1.hcl
     volumes:
       - "./service_config:/config"
-    command: ["consul", "connect", "envoy","-sidecar-for", "api-v1"]
+    command: ["consul", "connect", "envoy","-sidecar-for", "api-v1", "--", "-l", "debug"]
     network_mode: "service:api"
   
   cache:
@@ -88,6 +104,8 @@ services:
     networks:
       vpcbr:
         ipv4_address: 10.5.0.5
+    depends_on: 
+    - central_config
   cache_proxy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
@@ -111,6 +129,8 @@ services:
     networks:
       vpcbr:
         ipv4_address: 10.5.0.6
+    depends_on: 
+    - central_config
   payments_proxy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
@@ -133,6 +153,8 @@ services:
     networks:
       vpcbr:
         ipv4_address: 10.5.0.7
+    depends_on: 
+    - central_config
   currency_proxy:
     image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
     environment:
