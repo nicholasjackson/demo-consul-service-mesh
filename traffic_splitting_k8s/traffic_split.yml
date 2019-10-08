@@ -1,0 +1,181 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: central-config-split
+data:
+  1_web_defaults.hcl: |
+    kind = "service-defaults"
+    name = "web"
+    protocol = "http"
+  2_api_defaults.hcl: |
+    kind = "service-defaults"
+    name = "api"
+    protocol = "http"
+  3_api_resolver.hcl: |
+    kind = "service-resolver"
+    name = "api"
+
+    # https://www.consul.io/api/health.html#filtering-2
+    # # Show Node.Meta demonstration showing performance testing a new instance type
+    default_subset = "v1"
+
+    subsets = {
+      v1 = {
+        filter = "Service.Meta.version == 1"
+      }
+      v2 = {
+        filter = "Service.Meta.version == 2"
+      }
+    }
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: central-config-split
+  labels:
+    app: central-config-split
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+      - name: central-config
+        configMap:
+          name: central-config-split
+      containers:
+      - name: central-config-split
+        image: "nicholasjackson/consul-envoy:v1.6.1-v0.10.0"
+        imagePullPolicy: Always
+        env:
+        - name: "CONSUL_HTTP_ADDR"
+          value: "consul-consul-server:8500"
+        - name: "CONSUL_GRPC_ADDR"
+          value: "consul-consul-server:8502"
+        - name: "CENTRAL_CONFIG_DIR"
+          value: "/config"
+        volumeMounts:
+        - name: "central-config"
+          readOnly: true
+          mountPath: "/config"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  selector:
+    app: web
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 9090
+  type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deployment
+  labels:
+    app: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+      annotations:
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/connect-service-upstreams": "api:9091"
+    spec:
+      containers:
+      - name: web
+        image: nicholasjackson/fake-service:v0.4.1
+        ports:
+        - containerPort: 9090
+        env:
+        - name: "LISTEN_ADDR"
+          value: "0.0.0.0:9090"
+        - name: "UPSTREAM_URIS"
+          value: "http://localhost:9091"
+        - name: "NAME"
+          value: "web"
+        - name: "MESSAGE"
+          value: "Hello World"
+        - name: "HTTP_CLIENT_KEEP_ALIVES"
+          value: "false"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment-v1
+  labels:
+    app: api-v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-v1
+  template:
+    metadata:
+      labels:
+        app: api-v1
+      annotations:
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/service-meta-version": "1"
+        "consul.hashicorp.com/service-tags": "v1"
+    spec:
+      containers:
+      - name: api
+        image: nicholasjackson/fake-service:v0.4.1
+        ports:
+        - containerPort: 9090
+        env:
+        - name: "LISTEN_ADDR"
+          value: "0.0.0.0:9090"
+        - name: "NAME"
+          value: "api-v1"
+        - name: "MESSAGE"
+          value: "Response from API v1"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment-v2
+  labels:
+    app: api-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-v2
+  template:
+    metadata:
+      labels:
+        app: api-v2
+      annotations:
+        "consul.hashicorp.com/connect-inject": "true"
+        "consul.hashicorp.com/service-meta-version": "2"
+        "consul.hashicorp.com/service-tags": "v2"
+    spec:
+      containers:
+      - name: api
+        image: nicholasjackson/fake-service:v0.4.1
+        ports:
+        - containerPort: 9090
+        env:
+        - name: "LISTEN_ADDR"
+          value: "0.0.0.0:9090"
+        - name: "NAME"
+          value: "api-v2"
+        - name: "MESSAGE"
+          value: "Response from API v2"

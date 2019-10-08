@@ -31,7 +31,7 @@ services:
     image: nicholasjackson/fake-service:v0.4.1
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
-      UPSTREAM_URIS: http://localhost:9091
+      UPSTREAM_URIS: grpc://localhost:9091
       UPSTREAM_CALL: "true"
       MESSAGE: "Hello World"
       HTTP_CLIENT_KEEP_ALIVES: "false"
@@ -66,7 +66,7 @@ services:
       LISTEN_ADDR: localhost:9090
       NAME: api
       MESSAGE: "API V1"
-      SERVER_TYPE: "http"
+      SERVER_TYPE: "grpc"
       TRACING_ZIPKIN: "http://jaeger:9411"
       UPSTREAM_URIS: "http://localhost:9091, http://localhost:9092"
       TIMING_50_PERCENTILE: 10ms
