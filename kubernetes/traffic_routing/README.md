@@ -1,5 +1,5 @@
 # Traffic routing on K8s with Consul Connect
-This example shows how to split traffic between two versions of a service in Kubernetes
+This example shows how to using HTTP paths to route traffic between two versions of a service in Kubernetes
 
 ![](/images/traffic_routing_3.png)
 
