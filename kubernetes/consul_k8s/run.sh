@@ -1,8 +1,8 @@
 #!/bin/bash
-export KUBECONFIG="$(pwd)/kubeconfig.yaml"
+export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
 
 function up() {
-	docker-compose up -d
+	kind create cluster
 }
 
 function install_core() {
@@ -33,19 +33,19 @@ function install_consul() {
 	helm install -n consul ./helm-charts/consul-helm-0.9.0
 
   # Wait for Consul server to be ready
-  until kubectl get pods -l component=server --field-selector=status.phase=Running | grep -v "0/"; do
+  until kubectl get pods -l component=server --field-selector=status.phase=Running | grep "/1" | grep -v "0/"; do
     echo "Waiting for Consul server to start"
     sleep 1
   done
   
   # Wait for Consul client to be ready
-  until kubectl get pods -l component=client --field-selector=status.phase=Running | grep -v "0/"; do
+  until kubectl get pods -l component=client --field-selector=status.phase=Running | grep "/1" | grep -v "0/"; do
     echo "Waiting for Consul client to start"
     sleep 1
   done
 
   # Get a root ACL token and write to disk
-   kubectl get secret consul-consul-bootstrap-acl-token -o json | jq -r .data.token > consul_acl.token 
+  kubectl get secret consul-consul-bootstrap-acl-token -o json | jq -r .data.token > consul_acl.token 
 }
 
 function install_smi() {
@@ -56,49 +56,43 @@ function install_smi() {
 }
 
 function down() {
-	docker-compose down
+  kind delete cluster
+  pkill $(cat ./consul.pid)
 }
-
-function clean() {
-  echo "Removing containers and cleaning config volumes"
-  docker-compose down -v
-}
-
 
 function proxy_consul() {
-  kubectl port-forward svc/consul-consul-server 8500
+  nohup kubectl port-forward svc/consul-consul-server 8500 > /dev/null 2>&1 & echo $! > ./consul.pid
 }
 
 case "$1" in
   "up")
-    echo "Starting test environment"
+    echo "Starting test environment, this process will take approximately 2 minutes";
+    sleep 5
     up;
-    ;;
-  "down")
-    echo "Stopping Kubernetes"
-    down;
-    ;;
-  "clean")
-    echo "Stopping Kubernetes and removing all data"
-    clean;
-    ;;
-  "install")
-    echo "Installing and configuring environment"
+    echo "Installing and configuring environment";
     install_core;
     install_consul;
     install_smi;
+    proxy_consul;
+
+    echo "";
+    echo "Setup complete:";
+    echo "";
+    echo "To interact with Kubernetes set your KUBECONFIG environment variable";
+    echo "export KUBECONFIG=\"$(kind get kubeconfig-path --name=\"kind\")";
+    echo ""
+    echo "Consul can be accessed at: http://localhost:8500"
+    echo ""
+    echo "When finished use ./run.sh down to cleanup and remove resources";
     ;;
-  "proxy_consul")
-    echo "Proxying Consul server in K8s to localhost:8500"
-    proxy_consul
+  "down")
+    echo "Stopping Kubernetes and cleaning resources"
+    down;
     ;;
   *)
     echo "Options"
     echo "  up           - Start K8s server"
     echo "  down         - Stop K8s server"
-    echo "  clean        - Stop K8s server and cleanup"
-    echo "  install      - Install components such as Consul"
-    echo "  proxy_consul - Expose Consul server on localhost:8500"
     exit 1 
     ;;
 esac

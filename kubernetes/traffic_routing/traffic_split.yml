@@ -79,7 +79,6 @@ spec:
     protocol: TCP
     port: 9090
     targetPort: 9090
-  type: LoadBalancer
 
 ---
 # Web frontend
@@ -105,7 +104,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: nicholasjackson/fake-service:v0.7.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
@@ -145,7 +144,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: nicholasjackson/fake-service:v0.7.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
@@ -181,7 +180,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: nicholasjackson/fake-service:v0.7.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
