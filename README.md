@@ -52,7 +52,7 @@ This demonstration shows how to route traffic to a second Consul Datacenter usin
 
 ## Kubernetes
 
-### [Traffic Splitting](kubernetes/traffic_split/)
+### [Traffic Splitting](kubernetes/traffic_splitting/)
 This demonstration shows how traffic can be split between two service instances. This feature could be used for a Canary or Dark deployment testing strategy.
 
 ![](traffic_split/images/shifting_1.png)
