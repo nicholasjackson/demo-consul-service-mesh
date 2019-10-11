@@ -1,8 +1,10 @@
 ---
+# Central config stored as config map
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: central-config-split
+  name: central-config-routing
 data:
   1_web_defaults.hcl: |
     kind = "service-defaults"
@@ -30,12 +32,14 @@ data:
     }
 
 ---
+# Job to load central config
+
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: central-config-split
+  name: central-config-routing
   labels:
-    app: central-config-split
+    app: central-config-routing
 spec:
   template:
     spec:
@@ -43,7 +47,7 @@ spec:
       volumes:
       - name: central-config
         configMap:
-          name: central-config-split
+          name: central-config-routing
       containers:
       - name: central-config-split
         image: "nicholasjackson/consul-envoy:v1.6.1-v0.10.0"
@@ -61,6 +65,8 @@ spec:
           mountPath: "/config"
 
 ---
+# Service to expose web frontend
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -71,11 +77,12 @@ spec:
   ports:
   - name: http
     protocol: TCP
-    port: 80
+    port: 9090
     targetPort: 9090
-  type: LoadBalancer
 
 ---
+# Web frontend
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -97,7 +104,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: nicholasjackson/fake-service:v0.4.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
@@ -113,6 +120,8 @@ spec:
           value: "false"
 
 ---
+# API service version 2
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -135,7 +144,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: nicholasjackson/fake-service:v0.4.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
@@ -147,6 +156,8 @@ spec:
           value: "Response from API v1"
 
 ---
+# API service version 2
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -169,7 +180,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: nicholasjackson/fake-service:v0.4.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
@@ -179,3 +190,5 @@ spec:
           value: "api-v2"
         - name: "MESSAGE"
           value: "Response from API v2"
+
+---

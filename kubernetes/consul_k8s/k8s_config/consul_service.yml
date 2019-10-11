@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul-service
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 18500
+    targetPort: 8500
+  selector:
+    app: consul
+    component: server

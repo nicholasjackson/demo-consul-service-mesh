@@ -1,8 +1,10 @@
 # Traffic splitting on K8s with Consul Connect
+This example shows how to split traffic between two versions of a service in Kubernetes
 
-There is currently an open PR which needs to be merged before this feature can be used with the official images. [https://github.com/hashicorp/consul-k8s/pull/135](https://github.com/hashicorp/consul-k8s/pull/135)
+![](/images/traffic_split_6.png)
 
-For the time being the following docker container which includes the PR can be used: `nicholasjackson/consul-k8s-dev:beta`
+If you do not have access to a Kubernetes cluster, the script in [../consul_k8s](../consul_k8s) allows you to create
+a Kubernetes cluster with Consul installed using Docker on your local machine.
 
 ## Configuring Helm
 
@@ -199,7 +201,7 @@ This config contains the following elements
 * Config map containing L7 config
 * Job to load L7 config
 
-Once up and running the application can be called by curling the web-service
+It should take a couple of seconds for the application to get up and running:
 
 ```
 ➜ kubectl get svc
@@ -212,8 +214,20 @@ kubernetes                           ClusterIP      10.0.0.1       <none>       
 web-service                          LoadBalancer   10.0.108.23    13.64.193.176   80:32195/TCP                                                              41m
 ```
 
+You can access the Kubernetes service by using the command `kubectl port-forward` to forward a port from your local
+machine to the service for the web application in your Kubernetes cluster.
+
 ```
-➜ curl  13.64.193.176
+kubectl port-forward svc/web-service 9090
+Forwarding from 127.0.0.1:9090 -> 9090
+Forwarding from [::1]:9090 -> 9090
+```
+
+The web service can then be accessed at `http://localhost:9090`. When the web service is called it will make an upstream call
+to the API service. You should see the following output in your terminal.
+
+```
+➜ curl  localhost:9090
 {
   "name": "web",
   "type": "HTTP",
@@ -242,7 +256,7 @@ To enable traffic splitting apply the central config to consul using the CLI
 Now when the web endpoint is curled traffic will be split between `v1` and `v2`
 
 ```
-➜ curl  13.64.193.176
+➜ curl http://localhost:9090
 {
   "name": "web",
   "type": "HTTP",
@@ -259,7 +273,7 @@ Now when the web endpoint is curled traffic will be split between `v1` and `v2`
   ]
 }
 
-➜ curl  13.64.193.176
+➜ curl http://localhost:9090
 {
   "name": "web",
   "type": "HTTP",
@@ -306,7 +320,7 @@ consul config write 1_api_splitter.hcl
 Curling the endpoint will now only show the v2 API as an upstream:
 
 ```
-➜ curl  13.64.193.176
+➜ curl http://localhost:9090
 {
   "name": "web",
   "type": "HTTP",
@@ -323,7 +337,7 @@ Curling the endpoint will now only show the v2 API as an upstream:
   ]
 }
 
-➜ curl  13.64.193.176
+➜ curl http://localhost:9090
 {
   "name": "web",
   "type": "HTTP",
@@ -340,4 +354,3 @@ Curling the endpoint will now only show the v2 API as an upstream:
   ]
 }
 ```
-
