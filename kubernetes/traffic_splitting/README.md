@@ -1,12 +1,11 @@
-# Traffic routing on K8s with Consul Connect
-This example shows how to split traffic between two versions of a service in Kubernetes
+# Traffic splitting on K8s with Consul Connect
 
-![](/images/traffic_routing_3.png)
+There is currently an open PR which needs to be merged before this feature can be used with the official images. [https://github.com/hashicorp/consul-k8s/pull/135](https://github.com/hashicorp/consul-k8s/pull/135)
 
-If you do not have access to a Kubernetes cluster, the script in [../consul_k8s](../consul_k8s) allows you to create
-a Kubernetes cluster with Consul installed using Docker on your local machine.
+For the time being the following docker container which includes the PR can be used: `nicholasjackson/consul-k8s-dev:beta`
 
 ## Configuring Helm
+
 To enable Consul Service Mesh the following values must be configured in the official helm chart:
 
 ```
@@ -45,7 +44,7 @@ name = "api"
 protocol = "http"
 ```
 
-### `service-r` olverfor api service allowing subset based on service catalog metadata
+### `service-resolver` for api service allowing subset based on service catalog metadata
 
 ```
 kind = "service-resolver"
@@ -68,44 +67,27 @@ subsets = {
 }
 ```
 
-### `service-router` to configure path based routing to a specific subset.
-The following example routes traffic between service subsets using HTTP paths.
-
-[https://www.consul.io/docs/agent/config-entries/service-router.html](https://www.consul.io/docs/agent/config-entries/service-router.html)
+### `service-splitter` to configure percentage of traffic which is sent to each subset.
+The following example splits traffic 50/50 between both subsets
 
 ```
-kind = "service-router",
+kind = "service-splitter",
 name = "api"
 
-routes = [
+splits = [
   {
-    match {
-      http {
-        path_prefix="/v1"
-      }
-    }
-
-    destination {
-      service = "api"
-      service_subset = "v1"
-    }
+    weight = 50,
+    service_subset = "v1"
   },
   {
-    match {
-      http {
-        path_prefix="/v2"
-      }
-    }
-
-    destination {
-      service = "api"
-      service_subset = "v2"
-    }
-  },
+    weight = 50,
+    service_subset = "v2"
+  }
 ]
 ```
 
 ### Loading configuration
+
 To load the configuration into Consul it is possible to use three methods:
 * Consul CLI `consul config write file.hcl`, hcl or json formatted files
 * PUT request to the API (json only)
@@ -120,7 +102,7 @@ K8s annotation and automatically injected.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: central-config-routing
+  name: central-config-split
 data:
   1_web_defaults.hcl: |
     kind = "service-defaults"
@@ -151,9 +133,9 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: central-config-routing
+  name: central-config-split
   labels:
-    app: central-config-routing
+    app: central-config-split
 spec:
   template:
     spec:
@@ -161,7 +143,7 @@ spec:
       volumes:
       - name: central-config
         configMap:
-          name: central-config-routing
+          name: central-config-split
       containers:
       - name: central-config-split
         image: "nicholasjackson/consul-envoy:v1.6.1-v0.10.0"
@@ -180,8 +162,8 @@ spec:
 ```
 
 ### Configuring metadata
-For the `service-resolver` to include a service in a particular subset, Consul metadata is used.
-Configuring the metadata for the service in Consul's service catalog is done by using the K8s annotations, e.g.
+For the previous `service-resolver` to include a service in a particular subset, Consul MetaData is used.
+Configuring the metadata for the service in Consul`s service catalog is done by using the K8s annotations, e.g.
 
 ```
   template:
@@ -194,13 +176,15 @@ Configuring the metadata for the service in Consul's service catalog is done by 
         "consul.hashicorp.com/service-tags": "v1"
 ```
 
+
 ## Running the example
+
 With a running Kubernetes cluster and the Consul Helm chart installed a simple 2 tier application can be run using the following command:
 
 ```
-➜ kubectl apply -f traffic_routing.yml
-configmap/central-config-routing created
-job.batch/central-config-routing created
+➜ kubectl apply -f traffic_split.yml
+configmap/central-config-split created
+job.batch/central-config-split created
 service/web-service created
 deployment.apps/web-deployment created
 deployment.apps/api-deployment-v1 created
@@ -215,33 +199,21 @@ This config contains the following elements
 * Config map containing L7 config
 * Job to load L7 config
 
-It should take a couple of seconds for the application to get up and running:
-```
-➜ kubectl get pods
-NAME                                                              READY   STATUS      RESTARTS   AGE
-api-deployment-v1-5bd59988f8-h82pm                                2/2     Running     0          28s
-api-deployment-v2-6dd66bdb6f-864kk                                2/2     Running     0          28s
-central-config-routing-5nmk2                                      0/1     Completed   0          28s
-consul-consul-connect-injector-webhook-deployment-c46d9888rq7x6   1/1     Running     0          16m
-consul-consul-nb68d                                               1/1     Running     0          16m
-consul-consul-server-0                                            1/1     Running     0          16m
-web-deployment-66488ddb9-z2x92                                    2/2     Running     0          28s
-```
-
-You can access the Kubernetes service by using the command `kubectl port-forward` to forward a port from your local
-machine to the service for the web application in your Kubernetes cluster.
+Once up and running the application can be called by curling the web-service
 
 ```
-kubectl port-forward svc/web-service 9090
-Forwarding from 127.0.0.1:9090 -> 9090
-Forwarding from [::1]:9090 -> 9090
+➜ kubectl get svc
+NAME                                 TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)                                                                   AGE
+consul-consul-connect-injector-svc   ClusterIP      10.0.157.120   <none>          443/TCP                                                                   2d4h
+consul-consul-dns                    ClusterIP      10.0.156.52    <none>          53/TCP,53/UDP                                                             2d4h
+consul-consul-server                 ClusterIP      None           <none>          8500/TCP,8301/TCP,8301/UDP,8302/TCP,8302/UDP,8300/TCP,8600/TCP,8600/UDP   2d4h
+consul-consul-ui                     ClusterIP      10.0.175.50    <none>          80/TCP                                                                    2d4h
+kubernetes                           ClusterIP      10.0.0.1       <none>          443/TCP                                                                   2d4h
+web-service                          LoadBalancer   10.0.108.23    13.64.193.176   80:32195/TCP                                                              41m
 ```
 
-The web service can then be accessed at `http://localhost:9090`. When the web service is called it will make an upstream call
-to the API service. You should see the following output in your terminal.
-
 ```
-➜ curl localhost:9090
+➜ curl  13.64.193.176
 {
   "name": "web",
   "type": "HTTP",
@@ -259,22 +231,18 @@ to the API service. You should see the following output in your terminal.
 }
 ```
 
-Alternately you can view the UI in your browser at `http://localhost:9090`.
+Since there is no `traffic-splitter` configured the service will always resolve to the default subset which is the `v1` api
 
-![](images/fake-service.png)
-
-Initially there is no `traffic-router` configured the service will always resolve to the default subset which is the `v1` api.
-
-To enable traffic routing apply the central config to consul using the CLI
+To enable traffic splitting apply the central config to consul using the CLI
 
 ```
-➜ consul config write 1_api-router.hcl
+➜ consul config write 1_api-splitter.hcl
 ```
 
-Now when the web endpoint is curled traffic will be split between `v1` and `v2` depending on the path used.
+Now when the web endpoint is curled traffic will be split between `v1` and `v2`
 
 ```
-➜ curl  localhost:9090/v1
+➜ curl  13.64.193.176
 {
   "name": "web",
   "type": "HTTP",
@@ -291,7 +259,7 @@ Now when the web endpoint is curled traffic will be split between `v1` and `v2` 
   ]
 }
 
-➜ curl localhost:9090/v2
+➜ curl  13.64.193.176
 {
   "name": "web",
   "type": "HTTP",
@@ -309,4 +277,67 @@ Now when the web endpoint is curled traffic will be split between `v1` and `v2` 
 }
 ```
 
-Many more features can be used for route configuration, all of the options can be found in the documentation at: [https://www.consul.io/docs/agent/config-entries/service-router.html](https://www.consul.io/docs/agent/config-entries/service-router.html)
+Changing the weighting of the `service-splitter` and reapplying tthe config will imediately update the system, for example
+to configure 100% traffic to `v2`. Modify the `1_api_splitter.hcl` file with the following values:
+
+```
+
+kind = "service-splitter",
+name = "api"
+
+splits = [
+  {
+    weight = 0,
+    service_subset = "v1"
+  },
+  {
+    weight = 100,
+    service_subset = "v2"
+  }
+]
+```
+
+Again write the config to Consul:
+
+```
+consul config write 1_api_splitter.hcl
+```
+
+Curling the endpoint will now only show the v2 API as an upstream:
+
+```
+➜ curl  13.64.193.176
+{
+  "name": "web",
+  "type": "HTTP",
+  "duration": "10.151383ms",
+  "body": "Hello World",
+  "upstream_calls": [
+    {
+      "name": "api-v2",
+      "uri": "http://localhost:9091",
+      "type": "HTTP",
+      "duration": "143.298µs",
+      "body": "Response from API v2"
+    }
+  ]
+}
+
+➜ curl  13.64.193.176
+{
+  "name": "web",
+  "type": "HTTP",
+  "duration": "10.151383ms",
+  "body": "Hello World",
+  "upstream_calls": [
+    {
+      "name": "api-v2",
+      "uri": "http://localhost:9091",
+      "type": "HTTP",
+      "duration": "143.298µs",
+      "body": "Response from API v2"
+    }
+  ]
+}
+```
+

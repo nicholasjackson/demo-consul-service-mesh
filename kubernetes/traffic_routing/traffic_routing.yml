@@ -4,7 +4,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: central-config-split
+  name: central-config-routing
 data:
   1_web_defaults.hcl: |
     kind = "service-defaults"
@@ -37,9 +37,9 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: central-config-split
+  name: central-config-routing
   labels:
-    app: central-config-split
+    app: central-config-routing
 spec:
   template:
     spec:
@@ -47,7 +47,7 @@ spec:
       volumes:
       - name: central-config
         configMap:
-          name: central-config-split
+          name: central-config-routing
       containers:
       - name: central-config-split
         image: "nicholasjackson/consul-envoy:v1.6.1-v0.10.0"
@@ -79,18 +79,6 @@ spec:
     protocol: TCP
     port: 9090
     targetPort: 9090
-  type: LoadBalancer
-
----
-# Service Account to allow web frontend to obtain ACL token.
-# Convention is service account with same name as service registered
-# in Consul
-
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: web
-automountServiceAccountToken: false
 
 ---
 # Web frontend
@@ -114,10 +102,9 @@ spec:
         "consul.hashicorp.com/connect-inject": "true"
         "consul.hashicorp.com/connect-service-upstreams": "api:9091"
     spec:
-      serviceAccountName: web
       containers:
       - name: web
-        image: nicholasjackson/fake-service:v0.7.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
@@ -131,18 +118,6 @@ spec:
           value: "Hello World"
         - name: "HTTP_CLIENT_KEEP_ALIVES"
           value: "false"
-
----
-# Service Account to allow web frontend to obtain ACL token.
-# Convention is service account with same name as service registered
-# in Consul both v1 and v2 services are registerd with the same name
-# only one Service account is required.
-
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: api
-automountServiceAccountToken: false
 
 ---
 # API service version 2
@@ -167,10 +142,9 @@ spec:
         "consul.hashicorp.com/service-meta-version": "1"
         "consul.hashicorp.com/service-tags": "v1"
     spec:
-      serviceAccountName: api
       containers:
       - name: api
-        image: nicholasjackson/fake-service:v0.7.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
@@ -204,10 +178,9 @@ spec:
         "consul.hashicorp.com/service-meta-version": "2"
         "consul.hashicorp.com/service-tags": "v2"
     spec:
-      serviceAccountName: api
       containers:
       - name: api
-        image: nicholasjackson/fake-service:v0.7.1
+        image: nicholasjackson/fake-service:v0.7.3
         ports:
         - containerPort: 9090
         env:
@@ -217,3 +190,5 @@ spec:
           value: "api-v2"
         - name: "MESSAGE"
           value: "Response from API v2"
+
+---
