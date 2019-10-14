@@ -4,11 +4,12 @@ kind: Service
 metadata:
   name: consul-service
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
   - name: http
-    port: 18500
+    port: 8500
     targetPort: 8500
+    nodePort: 30443
   selector:
     app: consul
     component: server

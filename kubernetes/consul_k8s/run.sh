@@ -2,7 +2,10 @@
 export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
 
 function up() {
-	kind create cluster
+	kind create cluster --config ./config.yml
+
+  # Export KubeConfig
+  cat $(kind get kubeconfig-path) --name="kind" > ./kubeconfig.yaml
 }
 
 function install_core() {
@@ -57,11 +60,6 @@ function install_smi() {
 
 function down() {
   kind delete cluster
-  pkill $(cat ./consul.pid)
-}
-
-function proxy_consul() {
-  nohup kubectl port-forward svc/consul-consul-server 8500 > /dev/null 2>&1 & echo $! > ./consul.pid
 }
 
 case "$1" in
@@ -73,7 +71,6 @@ case "$1" in
     install_core;
     install_consul;
     install_smi;
-    proxy_consul;
 
     echo "";
     echo "Setup complete:";
