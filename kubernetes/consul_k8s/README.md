@@ -12,22 +12,49 @@ The script will:
 
 ## Requirements
 The following tools is needed to spin up this environment.
-
-* kubectl (https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-* helm (https://helm.sh/docs/using_helm/#install-helm)
 * docker (https://docs.docker.com/install/)
-* kind (https://kind.sigs.k8s.io/)
+
+## Recommended tools
+The following tools are recommended but not essential.
+* Consul CLI [https://releases.hashicorp.com/consul/](https://releases.hashicorp.com/consul/)
+* Kubernetes CLI
+
+Tools can also be accessed using an interactive Docker shell using the command:
+```
+➜ ./run.sh tools
+Running tools container
+
+root@docker-desktop:/files# ls
+README.md  config  consul_acl.token  dockerfiles  kubeconfig.yml  run.sh
+root@docker-desktop:/files#
+```
 
 ## Starting the K8s cluster with Consul Installed
 
 ```
 ./run.sh up
+Creating K8s cluster in Docker and installing Consul
+Starting test environment, this process will take approximately 2 minutes
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.15.3) 🖼
+
+# ...
+
+Setup complete:
+
+To interact with Kubernetes set your KUBECONFIG environment variable
+export KUBECONFIG="$(pwd)/kubeconfig.yml
+
+Consul can be accessed at: http://localhost:8500
+
+When finished use ./run.sh down to cleanup and remove resources
+
 ```
 
 Once complete you can interact with Kubernetes by setting the environment variable `KUBECONFIG`.
 
 ```
-export KUBECONFIG="/Users/nicj/.kube/kind-config-"kind"
+export KUBECONFIG="$(pwd)/kubeconfig.yml"
 
 ➜ kubectl get pods
 NAME                                                              READY   STATUS    RESTARTS   AGE

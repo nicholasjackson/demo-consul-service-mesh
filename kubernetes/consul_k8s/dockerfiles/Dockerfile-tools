@@ -1,0 +1,28 @@
+FROM ubuntu:latest
+
+RUN apt-get update && apt-get install -y curl apt-transport-https ca-certificates software-properties-common gnupg-agent vim zip
+
+# Install Kind
+RUN curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/v0.5.1/kind-$(uname)-amd64 && \
+    chmod +x ./kind && \
+    mv ./kind /usr/local/bin/kind
+
+# Install Kubectl
+RUN curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | tee -a /etc/apt/sources.list.d/kubernetes.list && \
+    apt-get update && \
+    apt-get install -y kubectl
+
+# Install Helm
+RUN curl -L https://git.io/get_helm.sh | bash
+
+# Install Docker CLI
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - && \
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu  $(lsb_release -cs)  stable" && \
+    apt-get update && \
+    apt-get install docker-ce-cli
+
+# Install Consul CLI
+RUN curl -sL https://releases.hashicorp.com/consul/1.6.1/consul_1.6.1_linux_amd64.zip -o consul.zip && \
+    unzip consul.zip && \
+    mv consul /usr/local/bin
