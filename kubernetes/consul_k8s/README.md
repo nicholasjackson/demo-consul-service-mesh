@@ -12,7 +12,7 @@ The script will:
 
 ## Requirements
 The following tools is needed to spin up this environment.
-* docker (https://docs.docker.com/install/)
+* Docker (https://docs.docker.com/install/)
 
 ## Recommended tools
 The following tools are recommended but not essential.
