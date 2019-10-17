@@ -118,7 +118,7 @@ case "$1" in
     echo "";
     tools;
     ;;
-  "vs_code")
+  "vscode")
     echo "Starting VSCode in a browser"
     vs_code;
     ;;

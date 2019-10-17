@@ -1,5 +1,5 @@
 kind = "service-splitter",
-name = "payments"
+name = "api"
 
 splits = [
   {
