@@ -59,3 +59,6 @@ This demonstration shows how traffic can be split between two service instances.
 
 ### [Traffic Routing](kubernetes/traffic_routing/)
 This demonstration shows how upstream traffic can be routed between two services using HTTP paths.
+
+### [Exposing Health Checks](expose/)
+Example showing how to bypass proxy security to expose Service health checks publicly.

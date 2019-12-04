@@ -2,7 +2,7 @@ version: "3.3"
 services:
 
   consul-dc1:
-    image: consul:1.6.0
+    image: consul:1.6.1
     command: ["consul","agent","-config-file=/config/consul-dc1.hcl"]
     volumes:
       - "../consul_config:/config"
@@ -16,7 +16,7 @@ services:
 
   # Define web service and envoy sidecar proxy
   web:
-    image: nicholasjackson/fake-service:v0.4.1
+    image: nicholasjackson/fake-service:v0.7.3
     environment:
       LISTEN_ADDR: 0.0.0.0:9090
       UPSTREAM_URIS: http://localhost:9091
@@ -30,7 +30,7 @@ services:
     ports:
       - 9090:9090
   web_envoy:
-    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.1-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
@@ -45,7 +45,7 @@ services:
   
   # Define currency service and envoy sidecar proxy for version 2 of the service
   currency_dc1:
-    image: nicholasjackson/fake-service:v0.4.1
+    image: nicholasjackson/fake-service:v0.7.3
     environment:
       LISTEN_ADDR: localhost:9090
       NAME: currency-dc1
@@ -55,7 +55,7 @@ services:
       dc1:
         ipv4_address: 10.5.0.4
   currency_proxy:
-    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.1-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
@@ -66,7 +66,7 @@ services:
     network_mode: "service:currency_dc1"
 
   gateway-dc1:
-    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.1-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.5.0.2:8500
       CONSUL_GRPC_ADDR: 10.5.0.2:8502
@@ -87,7 +87,7 @@ services:
 
  
   consul-dc2:
-    image: consul:1.6.0
+    image: consul:1.6.1
     command: ["consul","agent","-config-file=/config/consul-dc2.hcl"]
     volumes:
       - "../consul_config:/config"
@@ -101,7 +101,7 @@ services:
 
   # Define api service and envoy sidecar proxy for version 2 of the service
   payments_v2:
-    image: nicholasjackson/fake-service:v0.4.1
+    image: nicholasjackson/fake-service:v0.7.3
     environment:
       UPSTREAM_URIS: http://localhost:9091
       LISTEN_ADDR: localhost:9090
@@ -111,7 +111,7 @@ services:
       dc2:
         ipv4_address: 10.6.0.3
   payments_proxy_v2:
-    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.1-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.6.0.2:8500
       CONSUL_GRPC_ADDR: 10.6.0.2:8502
@@ -125,7 +125,7 @@ services:
   
   
   gateway-dc2:
-    image: nicholasjackson/consul-envoy:v1.6.0-v0.10.0
+    image: nicholasjackson/consul-envoy:v1.6.1-v0.10.0
     environment:
       CONSUL_HTTP_ADDR: 10.6.0.2:8500
       CONSUL_GRPC_ADDR: 10.6.0.2:8502
